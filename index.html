@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CB Eats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #000;
+  --white: #fff;
+  --rule: 1px solid #000;
+  --rule-heavy: 3px solid #000;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'Barlow', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--white);
+  color: var(--black);
+  min-height: 100vh;
+}
+
+/* ── MASTHEAD ── */
+.masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  border-bottom: var(--rule-heavy);
+}
+
+.masthead-left {
+  padding: 32px 40px 28px;
+  border-right: var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.masthead-eyebrow {
+  font-family: 'Barlow', 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: lowercase;
+  color: var(--black);
+  margin-bottom: 10px;
+}
+
+.masthead-title {
+  font-family: 'Barlow', 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: clamp(52px, 8vw, 96px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+  text-transform: lowercase;
+}
+
+.masthead-title em {
+  font-style: italic;
+  font-weight: 300;
+}
+
+.masthead-right {
+  padding: 28px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 200px;
+}
+
+.open-counter { text-align: right; }
+
+.open-counter .num {
+  font-family: 'Barlow', sans-serif;
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  display: block;
+}
+
+.open-counter .label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
+  font-family: 'Barlow', sans-serif;
+}
+
+.open-counter .sublabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #555;
+  display: block;
+  margin-top: 2px;
+  font-family: 'Barlow', sans-serif;
+}
+
+
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: stretch;
+  border-bottom: var(--rule);
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: stretch;
+  border-right: var(--rule);
+}
+
+.toolbar-section:last-child { border-right: none; margin-left: auto; }
+
+.tb-label {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: lowercase;
+  font-weight: 700;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-right: var(--rule);
+  background: var(--black);
+  color: var(--white);
+  font-family: 'Barlow', sans-serif;
+}
+
+.tb-btn {
+  background: transparent;
+  border: none;
+  border-right: var(--rule);
+  padding: 12px 20px;
+  font-family: 'Barlow', 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  cursor: pointer;
+  color: #555;
+  transition: background .1s, color .1s;
+  white-space: nowrap;
+}
+
+.tb-btn:last-child { border-right: none; }
+.tb-btn:hover { background: #f0f0f0; color: var(--black); }
+.tb-btn.active { background: var(--black); color: var(--white); }
+
+.time-badge {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  font-weight: 500;
+  color: #555;
+  font-family: 'Barlow', sans-serif;
+}
+
+/* ── MAIN LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.layout.split {
+  grid-template-columns: 420px 1fr;
+}
+
+/* ── LIST PANE ── */
+.list-pane { border-right: var(--rule); }
+
+.list-scroll {
+  overflow-y: auto;
+  max-height: calc(100vh - 190px);
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+/* Section headers */
+.list-section-head {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  border-bottom: var(--rule);
+  background: var(--black);
+  color: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.list-section-head .sh-num {
+  font-family: 'Barlow', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #333;
+  padding: 8px 0;
+}
+
+.list-section-head .sh-label {
+  font-family: 'Barlow', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: lowercase;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.list-section-head.closed-head {
+  background: #f0f0f0;
+  color: #999;
+}
+
+.list-section-head.closed-head .sh-num { border-right: 1px solid #ddd; }
+
+/* Cards */
+.card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  border-bottom: var(--rule);
+  cursor: pointer;
+  transition: background .08s;
+}
+
+.card:hover { background: #f8f8f8; }
+.card.active { background: var(--black); color: var(--white); }
+.card.closed-card { opacity: 0.5; }
+.card.closed-card:hover { opacity: 0.7; background: #fafafa; }
+
+.card-index {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #bbb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+  border-right: var(--rule);
+}
+
+.card.active .card-index { color: #555; border-right-color: #333; }
+
+.card-body { padding: 16px 20px 14px; }
+
+.card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.card-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.status-mark {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  font-family: 'Barlow', sans-serif;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-mark.open .status-dot { background: #0099FF; }
+.status-mark.open { color: var(--black); }
+.card.active .status-mark.open .status-dot { background: #0099FF; }
+
+.status-mark.closed .status-dot { border: 1px solid #999; background: transparent; }
+.status-mark.closed { color: #999; }
+
+.card-hours {
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: #555;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.card.active .card-hours { color: #aaa; }
+
+.card-meta {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-family: 'Barlow', sans-serif;
+}
+
+.card-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.card-link {
+  font-size: 9px;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: var(--black);
+  text-decoration: none;
+  border: 1px solid var(--black);
+  padding: 3px 8px;
+  transition: background .1s, color .1s;
+  display: inline-block;
+}
+
+.card-link:hover { background: var(--black); color: var(--white); }
+.card.active .card-link { border-color: var(--white); color: var(--white); }
+.card.active .card-link:hover { background: var(--white); color: var(--black); }
+
+/* ── MAP PANE ── */
+.map-pane {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 140px);
+  overflow: hidden;
+}
+
+#map { width: 100%; height: 100%; }
+
+/* Leaflet Swiss overrides */
+.leaflet-container { background: #f5f5f5; font-family: 'Barlow', sans-serif; }
+
+.leaflet-popup-content-wrapper {
+  background: var(--white);
+  color: var(--black);
+  border: 2px solid var(--black);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--black);
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+}
+
+.leaflet-popup-tip-container { display: none; }
+.leaflet-popup-content { margin: 12px 16px; line-height: 1.7; }
+.leaflet-popup-content strong {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.leaflet-control-zoom { border: var(--rule) !important; border-radius: 0 !important; }
+.leaflet-control-zoom a { border-radius: 0 !important; font-family: 'Barlow Condensed', sans-serif !important; font-weight: 700 !important; color: var(--black) !important; border-bottom: var(--rule) !important; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  padding: 64px 40px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: #bbb;
+  border-bottom: var(--rule);
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: var(--rule-heavy);
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+}
+
+footer .f-mark {
+  border-right: var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+footer .f-mark::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: var(--black);
+}
+
+footer .f-text {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  font-weight: 500;
+  color: #888;
+  font-family: 'Barlow', sans-serif;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+}
+
+footer .f-date {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: #bbb;
+  font-family: 'Barlow', sans-serif;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  border-left: var(--rule);
+}
+
+/* ── DIAGONAL ACCENT ── */
+.diagonal-rule {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  height: 120px;
+  background: var(--black);
+  transform-origin: bottom right;
+  transform: rotate(-45deg) translateY(-40px);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 700px) {
+  .layout.split { grid-template-columns: 1fr; }
+  .map-pane { position: static; height: 320px; }
+  .masthead-title { font-size: 48px; }
+  .masthead-right { display: none; }
+  .list-scroll { max-height: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="diagonal-rule" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="masthead-left">
+    <span class="masthead-eyebrow">Cannon Beach, Oregon — Dining Guide</span>
+    <h1 class="masthead-title">CB <em>Eats</em></h1>
+  </div>
+  <div class="masthead-right">
+    <div class="open-counter">
+      <span class="num" id="openNum">—</span>
+      <span class="label">Open Now</span>
+      <span class="sublabel">of <span id="totalNum">—</span> places</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toolbar" role="navigation" aria-label="Filters and view controls">
+  <div class="toolbar-section">
+    <span class="tb-label">View</span>
+    <button class="tb-btn active" onclick="setView('list')">List</button>
+    <button class="tb-btn" onclick="setView('split')">Split</button>
+    <button class="tb-btn" onclick="setView('map')">Map</button>
+  </div>
+  <div class="toolbar-section">
+    <span class="tb-label">Filter</span>
+    <button class="tb-btn active" onclick="setFilter('all')">All</button>
+    <button class="tb-btn" onclick="setFilter('open')">Open Now</button>
+    <button class="tb-btn" onclick="setFilter('restaurant')">Restaurant</button>
+    <button class="tb-btn" onclick="setFilter('cafe')">Café</button>
+  </div>
+  <div class="toolbar-section">
+    <span class="time-badge" id="timeBadge">—</span>
+  </div>
+</nav>
+
+<main class="layout" id="layout">
+  <div class="list-pane" id="listPane">
+    <div class="list-scroll" id="listScroll"></div>
+  </div>
+  <div class="map-pane" id="mapPane" style="display:none">
+    <div id="map"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="f-mark" aria-hidden="true"></div>
+  <span class="f-text">Hours sourced from Google Places · Verify before visiting</span>
+  <span class="f-date" id="footerDate">—</span>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const PLACES = [
+  { name:"The Wayfarer Restaurant & Lounge", lat:45.8896, lng:-123.9633, rating:4.2, reviews:3346, type:"restaurant", phone:"+1 503-436-1108", website:"https://www.wayfarercb.com", menu:null, hours:{"0":"8:00 AM – 9:00 PM","1":"8:00 AM – 9:00 PM","2":"8:00 AM – 9:00 PM","3":"8:00 AM – 9:00 PM","4":"8:00 AM – 9:00 PM","5":"8:00 AM – 9:00 PM","6":"8:00 AM – 9:00 PM"}, raw:{"0":[480,1260],"1":[480,1260],"2":[480,1260],"3":[480,1260],"4":[480,1260],"5":[480,1260],"6":[480,1260]} },
+  { name:"Driftwood Restaurant & Lounge", lat:45.8979, lng:-123.9605, rating:4.3, reviews:3414, type:"restaurant", phone:"+1 503-436-2439", website:"https://www.driftwoodcb.com", menu:null, hours:{"0":"11:30 AM – 10:00 PM","1":"11:30 AM – 10:00 PM","2":"11:30 AM – 10:00 PM","3":"11:30 AM – 10:00 PM","4":"11:30 AM – 10:00 PM","5":"11:30 AM – 10:00 PM","6":"11:30 AM – 10:00 PM"}, raw:{"0":[690,1320],"1":[690,1320],"2":[690,1320],"3":[690,1320],"4":[690,1320],"5":[690,1320],"6":[690,1320]} },
+  { name:"Oros Fireside Restaurant", lat:45.8984, lng:-123.9608, rating:4.3, reviews:868, type:"restaurant", phone:"+1 971-395-9769", website:"https://www.oroscb.com", menu:null, hours:{"0":"8:00 AM – 3:00 PM","1":"8:00 AM – 3:00 PM","2":"Closed","3":"8:00 AM – 3:00 PM","4":"8:00 AM – 8:00 PM","5":"8:00 AM – 8:00 PM","6":"8:00 AM – 3:00 PM"}, raw:{"0":[480,900],"1":[480,900],"2":null,"3":[480,900],"4":[480,1200],"5":[480,1200],"6":[480,900]} },
+  { name:"Pelican Brewing – Cannon Beach", lat:45.8882, lng:-123.9619, rating:4.3, reviews:5135, type:"restaurant", phone:"+1 503-908-3377", website:"https://www.pelicanbrewing.com/cannon-beach", menu:"https://www.pelicanbrewing.com/menus", hours:{"0":"11:00 AM – 10:00 PM","1":"11:00 AM – 10:00 PM","2":"11:00 AM – 10:00 PM","3":"11:00 AM – 10:00 PM","4":"11:00 AM – 10:00 PM","5":"10:30 AM – 10:00 PM","6":"10:30 AM – 10:00 PM"}, raw:{"0":[660,1320],"1":[660,1320],"2":[660,1320],"3":[660,1320],"4":[660,1320],"5":[630,1320],"6":[630,1320]} },
+  { name:"Anna's Table", lat:45.8960, lng:-123.9613, rating:4.9, reviews:470, type:"restaurant", phone:"+1 503-436-4272", website:"https://www.annastablecb.com", menu:null, hours:{"0":"5:00 PM – 8:00 PM","1":"Closed","2":"Closed","3":"5:00 PM – 8:00 PM","4":"5:00 PM – 8:00 PM","5":"5:00 PM – 8:00 PM","6":"5:00 PM – 8:00 PM"}, raw:{"0":[1020,1200],"1":null,"2":null,"3":[1020,1200],"4":[1020,1200],"5":[1020,1200],"6":[1020,1200]} },
+  { name:"Cannon Beach Smokehouse", lat:45.8982, lng:-123.9613, rating:4.5, reviews:900, type:"restaurant", phone:"+1 503-436-4035", website:"https://www.cbsmokehouse.com", menu:null, hours:{"0":"11:30 AM – 9:30 PM","1":"4:30 PM – 9:30 PM","2":"11:30 AM – 9:30 PM","3":"11:30 AM – 9:30 PM","4":"11:30 AM – 9:30 PM","5":"11:30 AM – 9:30 PM","6":"11:30 AM – 9:30 PM"}, raw:{"0":[690,1290],"1":[990,1290],"2":[690,1290],"3":[690,1290],"4":[690,1290],"5":[690,1290],"6":[690,1290]} },
+  { name:"Public Coast Brewing Co", lat:45.9006, lng:-123.9590, rating:4.4, reviews:1028, type:"restaurant", phone:"+1 503-436-0285", website:"https://www.publiccoastbrewing.com", menu:"https://www.publiccoastbrewing.com/menu", hours:{"0":"12:00 PM – 8:00 PM","1":"Closed","2":"Closed","3":"12:00 PM – 8:00 PM","4":"12:00 PM – 8:00 PM","5":"12:00 PM – 8:00 PM","6":"12:00 PM – 8:00 PM"}, raw:{"0":[720,1200],"1":null,"2":null,"3":[720,1200],"4":[720,1200],"5":[720,1200],"6":[720,1200]} },
+  { name:"Local Grill & Scoop", lat:45.8975, lng:-123.9612, rating:3.8, reviews:607, type:"restaurant", phone:"+1 503-436-9551", website:null, menu:null, hours:{"0":"8:00 AM – 7:30 PM","1":"8:00 AM – 7:30 PM","2":"8:00 AM – 7:30 PM","3":"8:00 AM – 2:30 PM","4":"8:00 AM – 8:00 PM","5":"8:00 AM – 8:00 PM","6":"8:00 AM – 7:30 PM"}, raw:{"0":[480,1170],"1":[480,1170],"2":[480,1170],"3":[480,870],"4":[480,1200],"5":[480,1200],"6":[480,1170]} },
+  { name:"Ecola Seafood Restaurant & Market", lat:45.8984, lng:-123.9601, rating:4.4, reviews:2047, type:"restaurant", phone:"+1 503-436-9130", website:"https://www.ecolaseafood.com", menu:null, hours:{"0":"10:00 AM – 7:00 PM","1":"10:00 AM – 7:00 PM","2":"10:00 AM – 7:00 PM","3":"10:00 AM – 7:00 PM","4":"10:00 AM – 7:00 PM","5":"10:00 AM – 7:00 PM","6":"10:00 AM – 7:00 PM"}, raw:{"0":[600,1140],"1":[600,1140],"2":[600,1140],"3":[600,1140],"4":[600,1140],"5":[600,1140],"6":[600,1140]} },
+  { name:"Mo's Seafood & Chowder", lat:45.8722, lng:-123.9617, rating:4.3, reviews:4801, type:"restaurant", phone:"+1 503-436-1111", website:"https://www.moschowder.com", menu:"https://www.moschowder.com/menu", hours:{"0":"11:00 AM – 9:00 PM","1":"11:00 AM – 9:00 PM","2":"11:00 AM – 9:00 PM","3":"11:00 AM – 9:00 PM","4":"11:00 AM – 9:00 PM","5":"11:00 AM – 9:00 PM","6":"11:00 AM – 9:00 PM"}, raw:{"0":[660,1260],"1":[660,1260],"2":[660,1260],"3":[660,1260],"4":[660,1260],"5":[660,1260],"6":[660,1260]} },
+  { name:"Insomnia Coffee Co", lat:45.8981, lng:-123.9617, rating:4.7, reviews:1207, type:"cafe", phone:"+1 503-436-4164", website:"https://www.insomniacoffee.com", menu:null, hours:{"0":"Closed","1":"7:00 AM – 3:00 PM","2":"7:00 AM – 3:00 PM","3":"7:00 AM – 3:00 PM","4":"7:00 AM – 3:00 PM","5":"7:00 AM – 3:00 PM","6":"Closed"}, raw:{"0":null,"1":[420,900],"2":[420,900],"3":[420,900],"4":[420,900],"5":[420,900],"6":null} },
+  { name:"Kith + Keel Coffee", lat:45.8892, lng:-123.9618, rating:4.8, reviews:42, type:"cafe", phone:"+1 503-436-4027", website:null, menu:null, hours:{"0":"8:00 AM – 5:00 PM","1":"7:30 AM – 12:00 PM","2":"7:30 AM – 12:00 PM","3":"7:30 AM – 12:00 PM","4":"8:00 AM – 5:00 PM","5":"8:00 AM – 5:00 PM","6":"8:00 AM – 5:00 PM"}, raw:{"0":[480,1020],"1":[450,720],"2":[450,720],"3":[450,720],"4":[480,1020],"5":[480,1020],"6":[480,1020]} },
+  { name:"Sea Level Bakery + Coffee", lat:45.8745, lng:-123.9602, rating:4.6, reviews:841, type:"cafe", phone:"+1 503-436-4254", website:"https://www.sealevelbakery.com", menu:null, hours:{"0":"7:00 AM – 2:00 PM","1":"Closed","2":"Closed","3":"7:00 AM – 2:00 PM","4":"7:00 AM – 2:00 PM","5":"7:00 AM – 2:00 PM","6":"7:00 AM – 2:00 PM"}, raw:{"0":[420,840],"1":null,"2":null,"3":[420,840],"4":[420,840],"5":[420,840],"6":[420,840]} },
+  { name:"Elk Creek Coffee", lat:45.9000, lng:-123.9604, rating:4.9, reviews:178, type:"cafe", phone:"+1 503-436-4343", website:null, menu:null, hours:{"0":"7:00 AM – 3:00 PM","1":"Closed","2":"Closed","3":"Closed","4":"7:00 AM – 3:00 PM","5":"7:00 AM – 3:00 PM","6":"7:00 AM – 3:00 PM"}, raw:{"0":[420,900],"1":null,"2":null,"3":null,"4":[420,900],"5":[420,900],"6":[420,900]} },
+  { name:"Bald Eagle Coffee House", lat:45.8904, lng:-123.9620, rating:4.6, reviews:313, type:"cafe", phone:"+1 503-436-0522", website:null, menu:null, hours:{"0":"7:30 AM – 4:00 PM","1":"Closed","2":"7:30 AM – 4:00 PM","3":"7:30 AM – 4:00 PM","4":"Closed","5":"7:30 AM – 4:00 PM","6":"7:30 AM – 4:00 PM"}, raw:{"0":[450,960],"1":null,"2":[450,960],"3":[450,960],"4":null,"5":[450,960],"6":[450,960]} }
+];
+
+const ptNow = new Date(new Date().toLocaleString("en-US",{timeZone:"America/Los_Angeles"}));
+const dayIdx = ptNow.getDay();
+const curMin = ptNow.getHours()*60+ptNow.getMinutes();
+
+function isOpen(p){ const r=p.raw[dayIdx]; return r?curMin>=r[0]&&curMin<r[1]:false; }
+function todayHours(p){ return p.hours[dayIdx]||"Closed"; }
+function hoursLine(p){
+  const h=todayHours(p);
+  if(h==="Closed") return "Closed today";
+  const parts=h.split("–");
+  return isOpen(p)?`Open until ${parts[1]?parts[1].trim():h}`:`Opens ${parts[0]?parts[0].trim():h}`;
+}
+
+let viewMode="list", filterMode="all", activeIdx=null, map=null, markers=[];
+
+function setView(v){
+  viewMode=v;
+  document.querySelectorAll('.toolbar-section:first-child .tb-btn').forEach((b,i)=>{
+    b.classList.toggle("active",["list","split","map"][i]===v);
+  });
+  render();
+}
+
+function setFilter(f){
+  filterMode=f;
+  const labels={all:"All",open:"Open Now",restaurant:"Restaurant",cafe:"Café"};
+  document.querySelectorAll('.toolbar-section:nth-child(2) .tb-btn').forEach(b=>{
+    b.classList.toggle("active",b.textContent.trim()===labels[f]);
+  });
+  render();
+}
+
+function getFiltered(){
+  return PLACES.filter(p=>{
+    if(filterMode==="open") return isOpen(p);
+    if(filterMode==="restaurant") return p.type==="restaurant";
+    if(filterMode==="cafe") return p.type==="cafe";
+    return true;
+  }).sort((a,b)=>{
+    const ao=isOpen(a),bo=isOpen(b);
+    if(ao&&!bo) return -1; if(!ao&&bo) return 1;
+    return b.rating-a.rating;
+  });
+}
+
+function render(){
+  const layout=document.getElementById("layout");
+  const listPane=document.getElementById("listPane");
+  const mapPane=document.getElementById("mapPane");
+  const scroll=document.getElementById("listScroll");
+
+  layout.className="layout"+(viewMode==="split"?" split":"");
+  listPane.style.display=viewMode==="map"?"none":"block";
+  mapPane.style.display=viewMode==="list"?"none":"block";
+  if(viewMode!=="list") initMap();
+
+  const list=getFiltered();
+  scroll.innerHTML="";
+
+  const openItems=list.filter(p=>isOpen(p));
+  const closedItems=list.filter(p=>!isOpen(p));
+
+  function renderSection(items, isOpenSection){
+    if(!items.length) return;
+    const head=document.createElement("div");
+    head.className="list-section-head"+(isOpenSection?"":" closed-head");
+    head.innerHTML=`<span class="sh-num">${items.length}</span><span class="sh-label">${isOpenSection?"Open Now":"Closed Today"}</span>`;
+    scroll.appendChild(head);
+
+    items.forEach(p=>{
+      const gIdx=PLACES.indexOf(p);
+      const open=isOpen(p);
+      const card=document.createElement("div");
+      card.className="card"+(open?"":" closed-card")+(activeIdx===gIdx?" active":"");
+
+      const links=[];
+      if(p.website) links.push(`<a class="card-link" href="${p.website}" target="_blank" rel="noopener">Website</a>`);
+      if(p.menu) links.push(`<a class="card-link" href="${p.menu}" target="_blank" rel="noopener">Menu</a>`);
+      links.push(`<a class="card-link" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">Map</a>`);
+      if(p.phone) links.push(`<a class="card-link" href="tel:${p.phone}">Call</a>`);
+
+      card.innerHTML=`
+        <span class="card-index">${String(gIdx+1).padStart(2,"0")}</span>
+        <div class="card-body">
+          <div class="card-top">
+            <span class="card-name">${p.name}</span>
+            <span class="status-mark ${open?"open":"closed"}"><span class="status-dot"></span>${open?"Open":"Closed"}</span>
+          </div>
+          <div class="card-hours">${hoursLine(p)}</div>
+          <div class="card-meta">
+            <span>${p.rating} ★ &nbsp;${p.reviews.toLocaleString()} reviews</span>
+            <span>·</span>
+            <span>${p.type.toUpperCase()}</span>
+          </div>
+          <div class="card-links">${links.join("")}</div>
+        </div>
+      `;
+      card.onclick=()=>{ activeIdx=gIdx; highlightMarker(p); render(); };
+      scroll.appendChild(card);
+    });
+  }
+
+  if(filterMode==="open"){
+    renderSection(list,true);
+  } else {
+    renderSection(openItems,true);
+    renderSection(closedItems,false);
+  }
+
+  if(!list.length){
+    const e=document.createElement("div");
+    e.className="empty-state";
+    e.textContent="No results";
+    scroll.appendChild(e);
+  }
+
+  const openCount=PLACES.filter(isOpen).length;
+  document.getElementById("openNum").textContent=openCount;
+  document.getElementById("totalNum").textContent=PLACES.length;
+
+  const timeStr=ptNow.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/Los_Angeles"});
+  document.getElementById("timeBadge").textContent=timeStr+" PT";
+  document.getElementById("footerDate").textContent=ptNow.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+
+  markers.forEach((m,i)=>m.setOpacity(list.includes(PLACES[i])?1:0.2));
+}
+
+function initMap(){
+  if(map) return;
+  map=L.map("map",{center:[45.893,-123.962],zoom:14});
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
+    subdomains:"abcd",maxZoom:19
+  }).addTo(map);
+
+  PLACES.forEach((p,i)=>{
+    const open=isOpen(p);
+      const size=open?8:6;
+      const icon=L.divIcon({
+        className:"",
+        html:`<div style="width:${size}px;height:${size}px;background:${open?"#0099FF":"#fff"};border:1.5px solid ${open?"#0099FF":"#999"};border-radius:50%;"></div>`,
+        iconSize:[size,size],iconAnchor:[size/2,size/2]
+      });
+    const marker=L.marker([p.lat,p.lng],{icon}).addTo(map);
+    marker.bindPopup(`<strong>${p.name}</strong>${open?"<br>Open now":"<br>Closed"}<br><span style="color:#555;font-style:italic;">${todayHours(p)}</span>`);
+    marker.on("click",()=>{ activeIdx=i; render(); });
+    markers.push(marker);
+  });
+}
+
+function highlightMarker(p){
+  if(!map) return;
+  const idx=PLACES.indexOf(p);
+  if(markers[idx]){ map.setView([p.lat,p.lng],15); markers[idx].openPopup(); }
+}
+
+render();
+</script>
+</body>
+</html>
