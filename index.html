@@ -441,20 +441,6 @@ footer .f-date {
   border-left: var(--rule);
 }
 
-/* ── DIAGONAL ACCENT ── */
-.diagonal-rule {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  width: 1px;
-  height: 120px;
-  background: var(--black);
-  transform-origin: bottom right;
-  transform: rotate(-45deg) translateY(-40px);
-  pointer-events: none;
-  z-index: 100;
-}
-
 /* ── RESPONSIVE ── */
 @media (max-width: 700px) {
   .layout.split { grid-template-columns: 1fr; }
@@ -466,8 +452,6 @@ footer .f-date {
 </style>
 </head>
 <body>
-
-<div class="diagonal-rule" aria-hidden="true"></div>
 
 <header class="masthead">
   <div class="masthead-left">
