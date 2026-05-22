@@ -630,7 +630,8 @@ footer .f-date {
   .masthead-right { display: none; }
   .list-scroll { max-height: none; }
   .nav-row-locations { padding: 0 16px; }
-  .nav-row-controls { padding: 8px 16px; gap: 10px; }
+  .nav-row-controls { padding: 8px 16px; gap: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .nav-row-controls::-webkit-scrollbar { display: none; }
   .time-badge { display: none; }
   .search-panel { padding: 0 16px; }
 }
@@ -689,7 +690,6 @@ footer .f-date {
   <div class="nav-row-controls">
 
     <div class="ctrl-group" data-group="view">
-      <span class="ctrl-label">view</span>
       <button class="chip" onclick="setView('list')">List</button>
       <button class="chip active" onclick="setView('split')">Split</button>
       <button class="chip" onclick="setView('map')">Map</button>
@@ -698,7 +698,6 @@ footer .f-date {
     <div class="ctrl-divider"></div>
 
     <div class="ctrl-group" data-group="filter">
-      <span class="ctrl-label">filter</span>
       <button class="chip active" onclick="setFilter('all')">All</button>
       <button class="chip" onclick="setFilter('open')">Open Now</button>
       <button class="chip" onclick="setFilter('restaurant')">Restaurant</button>
